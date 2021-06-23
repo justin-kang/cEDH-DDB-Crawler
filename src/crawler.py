@@ -7,10 +7,9 @@ class Crawler:
     def __init__(self,url=''):
         self.url = url
         self.links = []
-        return None
 
     # clean links 
-    def filter_link(self,url):
+    def _filter_link(self,url):
         if url is None:
             return None
         if 'jpg' in url:
@@ -27,7 +26,7 @@ class Crawler:
         else:
             return url.strip()
 
-    def browse_deck_categories(self):
+    def _browse_deck_categories(self):
         html = requests.get(self.url).text
         soup = bs(html,'html.parser')
         # keep track of which section each deck category falls under
@@ -51,14 +50,12 @@ class Crawler:
                 index += 1
                 # get all of the deck lists from that category
                 for link in li.find_all('a'):
-                    link = self.filter_link(link.get('href'))
+                    link = self._filter_link(link.get('href'))
                     if link:
                         self.links.append(link)
-        return None
 
     def run(self):
         try:
-            self.browse_deck_categories()
+            self._browse_deck_categories()
         except Exception:
             logging.exception(f'Failed to crawl: {self.url}')
-        return self.links
