@@ -18,7 +18,7 @@ class Crawler:
             return None
         if 'google' in url:
             return None
-        # ignore hyperlinks to other ddb stuff
+        # ignore internal hyperlinks
         if 'http' not in url:
             return None
         if 'moxfield' in url and 'primer' in url:
@@ -31,14 +31,12 @@ class Crawler:
         soup = bs(html,'html.parser')
         # keep track of which section each deck category falls under
         sections = []
-        for div in soup.find_all('div'):
-            if div.has_attr('class'):
-                if 'ddb-section' in div['class']:
-                    if 'COMPETITIVE' in div.text or 'BREW' in div.text:
-                        sections.append(1)
-                    # decks are meme or outdated
-                    else:
-                        sections.append(0)
+        for div in soup.find_all('div',class_='ddb-section'):
+            if 'COMPETITIVE' in div.text or 'BREW' in div.text:
+                sections.append(1)
+            # decks are meme or outdated
+            else:
+                sections.append(0)
         # find each deck category
         index = 0
         for li in soup.find_all('li'):
