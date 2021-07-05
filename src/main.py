@@ -5,7 +5,7 @@ if __name__ == '__main__':
     crawler = Crawler('https://cedh-decklist-database.com/')
     crawler.run()
     counts = {}
-    for link in ['https://www.moxfield.com/decks/1t0Cpm1xqUeyA-6xi2TrGQ']: #crawler.links[:5]:
+    for link in crawler.links:
         print(link)
         if 'moxfield' in link:
             parser = MoxfieldParser(link)
@@ -18,7 +18,8 @@ if __name__ == '__main__':
         # sometimes doesn't read the decklist, so loop until it does
         while not parser.decklist:
             parser.run()
-        # TODO
         print(len(parser.decklist))
+        # TODO
+        
     # make sure to close the browser to avoid mem leaks
     driver.quit()

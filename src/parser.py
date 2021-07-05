@@ -1,16 +1,20 @@
 import logging
 # for splitting text with regex
 import re
+import time
 from bs4 import BeautifulSoup as bs
-# used to execute JS for webcrawling, needed for moxfield
+# use selenium to have js enabled while webcrawling
 from selenium.webdriver import Firefox, firefox
+# used for checking dropdown menus so we have a standard view
+from selenium.webdriver.support.select import Select
 
+# options we need to have selenium run firefox in the background
 options = firefox.options.Options()
-options.add_argument('--headless')
+options.headless = True
+options.add_argument('start-maximized')
 driver = Firefox(executable_path='./geckodriver',options=options)
 
 class Parser:
-
     _basics = {'Plains','Island','Swamp','Mountain','Forest'}
 
     def __init__(self,url=''):
@@ -42,7 +46,27 @@ class GoldfishParser(Parser):
 class MoxfieldParser(Parser):
     def _parse_decklist(self):
         soup = super()._parse_decklist()
-        # TODO: account for visual view
+        # use dropdowns to guarantee we always default to table view
+        try:
+            select = Select(driver.find_element_by_id('viewMode'))
+        # in case moxfield doesn't properly load the page
+        # we return None here, relying on main.py to retry this until it works
+        except:
+            return
+        # option 0 = view mode as a table, if visual view is on instead
+        if select.all_selected_options[0] != select.options[0]:
+            # when opening moxfield links w/ visual view in headless, 
+            # 'deck-footer ' will obscure the dropdown that lets you change
+            # use javascript to hide the div 'deck-footer '
+            e = driver.find_element_by_xpath("//div[@class='deck-footer ']")
+            driver.execute_script("arguments[0].style.visibility='hidden'",e)
+            try:
+                select.select_by_value('table')
+            except:
+                return
+            # refresh the soup for the updated html
+            html = driver.page_source
+            soup = bs(html,'html.parser')
         for table in soup.find_all(class_='table-deck'):
             # split up card name from type
             text = table.text.strip().split(maxsplit=1)
@@ -61,5 +85,5 @@ class MoxfieldParser(Parser):
                 continue
             for card in cards:
                 # ignore basic lands
-                #if card not in super()._basics and 'Snow-Covered' not in card:
-                self.decklist.add(card)
+                if card not in super()._basics and 'Snow-Covered' not in card:
+                    self.decklist.add(card)
