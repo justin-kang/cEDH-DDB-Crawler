@@ -4,15 +4,15 @@ import re
 import time
 from bs4 import BeautifulSoup as bs
 # use selenium to have js enabled while webcrawling
-from selenium.webdriver import Firefox, firefox
+from selenium import webdriver
 # used for checking dropdown menus so we have a standard view
 from selenium.webdriver.support.select import Select
 
 # options we need to have selenium run firefox in the background
-options = firefox.options.Options()
+options = webdriver.firefox.options.Options()
 options.headless = True
 options.add_argument('start-maximized')
-driver = Firefox(executable_path='./geckodriver',options=options)
+driver = webdriver.Firefox(executable_path='./geckodriver',options=options)
 
 class Parser:
     _basics = {'Plains','Island','Swamp','Mountain','Forest'}
@@ -37,11 +37,50 @@ class ArchidektParser(Parser):
     def _parse_decklist(self):
         soup = super()._parse_decklist()
         # TODO
+        '''
+        export = "//div[@class='sc-fzsDOv gaESPX'][contains(text(),'Export')]"
+        element = driver.find_element_by_xpath(export)
+        element.click()
+        download = "//i[@class='download icon']"
+        element = driver.find_element_by_xpath(download)
+        element.click()
+        time.sleep(5)
+        '''
 
 class GoldfishParser(Parser):
     def _parse_decklist(self):
         soup = super()._parse_decklist()
-        # TODO
+        tab = soup.find(id='tab-paper')
+        for table in tab.find_all(class_='deck-view-deck-table'):
+            # remove non-breaking spaces
+            text = table.text.replace(u'\xa0','')
+            # ignore the sideboard section
+            if 'Sideboard' in text:
+                text = text[:text.index('Sideboard')]
+            # regex filtering
+            # remove prices
+            text = re.sub(r'\$\d+\,*\d*\.\d+','',text)
+            # remove counts (x) for sections
+            text = re.sub(r'\(\d+\)','',text)
+            # remove white space
+            text = re.sub(r'\n',' ',text)
+            # remove section titles
+            text = text.replace('  Commander  ','')
+            text = text.replace('  Creatures  ','')
+            text = text.replace('  Planeswalkers  ','')
+            text = text.replace('  Enchantments  ','')
+            text = text.replace('  Artifacts  ','')
+            text = text.replace('  Spells  ','')
+            text = text.replace('  Lands  ','')
+            # remove white space
+            text = text.strip()
+            while '  ' in text:
+                text = text.replace('  ',' ')
+            # split text into card names
+            cards = re.split(r' *\d+ ',text)[1:]
+            for card in cards:
+                if card not in super()._basics and 'Snow-Covered' not in card:
+                    self.decklist.add(card)
 
 class MoxfieldParser(Parser):
     def _parse_decklist(self):
