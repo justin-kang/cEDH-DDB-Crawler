@@ -12,6 +12,9 @@ from selenium.webdriver.support.select import Select
 options = webdriver.firefox.options.Options()
 options.headless = True
 options.add_argument('start-maximized')
+options.set_preference('browser.download.folderList',2)
+options.set_preference('browser.download.manager.showWhenStarting',False)
+options.set_preference('browser.helperApps.neverAsk.saveToDisk','text/*')
 driver = webdriver.Firefox(executable_path='./geckodriver',options=options)
 
 class Parser:
@@ -23,9 +26,13 @@ class Parser:
 
     def _parse_decklist(self):
         driver.get(self.url)
-        html = driver.page_source
-        soup = bs(html,'html.parser')
+        soup = bs(driver.page_source,'html5lib')
         return soup
+
+    def _add_card(self,card):
+        # ignore basic lands
+        if card not in self._basics and 'Snow-Covered' not in card:
+            self.decklist.add(card)
 
     def run(self):
         try:
@@ -35,17 +42,29 @@ class Parser:
 
 class ArchidektParser(Parser):
     def _parse_decklist(self):
-        soup = super()._parse_decklist()
-        # TODO
-        '''
-        export = "//div[@class='sc-fzsDOv gaESPX'][contains(text(),'Export')]"
-        element = driver.find_element_by_xpath(export)
+        driver.get(self.url)
+        # we need to wait for archidekt to load metadata to easily get the cmdr
+        time.sleep(7.5)
+        soup = bs(driver.page_source,'html5lib')
+        cmdr = soup.find('meta',{'data-react-helmet':True})['content']
+        if 'Commander' not in cmdr:
+            return
+        # TODO: there's an edgecase of partners but we're ignoring b/c lazy
+        cmdr = cmdr[cmdr.index('Commander:'):cmdr.index('.')]
+        cmdr = re.sub('Commander:','',cmdr).strip()
+        super()._add_card(cmdr)
+        # load goldfishing probability as an easy way to scrape text card names
+        xpath = "//i[@class='pie chart icon']"
+        element = driver.find_element_by_xpath(xpath)
         element.click()
-        download = "//i[@class='download icon']"
-        element = driver.find_element_by_xpath(download)
+        xpath = "//a[@class='item'][contains(text(),'Probability')]"
+        element = driver.find_element_by_xpath(xpath)
         element.click()
-        time.sleep(5)
-        '''
+        soup = bs(driver.page_source,'html.parser')
+        for table in soup.find_all('tbody',class_=''):
+            cards = re.split(r'\d+\%',table.text.strip())[:-1]
+            for card in cards:
+                super()._add_card(card)
 
 class GoldfishParser(Parser):
     def _parse_decklist(self):
@@ -79,8 +98,7 @@ class GoldfishParser(Parser):
             # split text into card names
             cards = re.split(r' *\d+ ',text)[1:]
             for card in cards:
-                if card not in super()._basics and 'Snow-Covered' not in card:
-                    self.decklist.add(card)
+                super()._add_card(card)
 
 class MoxfieldParser(Parser):
     def _parse_decklist(self):
@@ -123,6 +141,4 @@ class MoxfieldParser(Parser):
                         break
                 continue
             for card in cards:
-                # ignore basic lands
-                if card not in super()._basics and 'Snow-Covered' not in card:
-                    self.decklist.add(card)
+                super()._add_card(card)
