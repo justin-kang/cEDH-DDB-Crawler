@@ -1,4 +1,4 @@
-# cEDH-DDB-Crawler
+# Crawler
 
 | Dependencies | Installation |
 ---|---
