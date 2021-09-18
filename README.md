@@ -12,3 +12,5 @@
 2. Move `geckodriver` to `src/`. `parser.py` assumes a binary file, but you can edit it to match the appropriate file type for your system.
 3. Update `database.py` to query whatever values you want.
 4. Update and run `main.py` (from `src/`).
+
+TODO: Update Moxfield to use https://www.gerbrand.dev/decks/<hash> for easier scraping
