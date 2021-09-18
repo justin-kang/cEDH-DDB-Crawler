@@ -13,4 +13,4 @@
 3. Update `database.py` to query whatever values you want.
 4. Update and run `main.py` (from `src/`).
 
-TODO: Update Moxfield to use https://www.gerbrand.dev/decks/<hash> for easier scraping
+TODO: Update Moxfield to use https://www.gerbrand.dev/decks/\<hash\> for easier scraping
